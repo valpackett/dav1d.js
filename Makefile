@@ -1,30 +1,20 @@
 all: dav1d.wasm
 
 patch:
-	patch -d dav1d -p1 <dav1d.patch
+	# patch -d dav1d -p1 <dav1d.patch
 
-build/dist/lib64/libdav1d.a:
-	meson dav1d build \
-		--prefix="$(CURDIR)/build/dist" \
-		--cross-file=cross_file.txt \
-		--default-library=static \
-		--buildtype=release \
-		-Dbitdepths="['8']" \
-		-Dbuild_asm=false \
-		-Dbuild_tools=false \
-		-Dbuild_tests=false \
-		-Dlogging=false \
-	&& ninja -C build install
+build/dist/lib/libdav1d.a:
+	podman run --rm -it -v $(CURDIR):/src emscripten/emsdk sh -c "apt update && apt install -y meson && meson dav1d build --prefix=/src/build/dist --cross-file=dav1d/package/crossfiles/wasm32.meson --default-library=static --buildtype=debugoptimized -Dbitdepths=\"['8']\" -Denable_tools=false -Denable_tests=false -Dlogging=false && ninja -C build install"
 
-dav1d.wasm: build/dist/lib64/libdav1d.a dav1d.c
-	emcc $^ -DNDEBUG -O3 --llvm-lto 3 -Ibuild/dist/include -o $@ \
-		-s TOTAL_MEMORY=67108864 -s MALLOC=emmalloc
+dav1d.wasm: build/dist/lib/libdav1d.a dav1d.c
+	podman run --rm -it -v $(CURDIR):/src emscripten/emsdk emcc $^ -DNDEBUG -O3 -g -flto --no-entry -Ibuild/dist/include -o $@ \
+		-s MALLOC=emmalloc -s INITIAL_MEMORY=2GB -s STACK_SIZE=11252192
+#ALLOW_MEMORY_GROWTH=1 -s 
 
 .PHONY: test
 test: dav1d.c
-	$(CC) $^ $(CFLAGS) -O2 -Wall -o $@ \
-		-I../tmp/dav1d/dist/include -L../tmp/dav1d/dist/lib64 \
-		-ldav1d -lpthread
+	$(CC) $^ $(CFLAGS) -O2 -g -Wall -fsanitize=address -o $@ \
+		`pkg-config --libs --cflags dav1d` -lpthread
 
 test-native: test
 	./test
