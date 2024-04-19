@@ -52,7 +52,6 @@ class Dav1d {
     this.lastFrameRef = 0;
   }
   _init() {
-    console.log(this.FFI)
     this.FFI._initialize()
     // this.ref = this.FFI.g();
     this.ref = this.FFI.djs_init();
@@ -67,7 +66,6 @@ class Dav1d {
     if (!obuRef) throw new Error("error in djs_alloc_obu");
     new Uint8Array(this.FFI.memory.buffer).set(obu, obuRef);
     // const frameRef = this.FFI.k(this.ref, obuRef, obu.byteLength, format);
-    console.log('decoding', obu.byteLength, format)
     const frameRef = this.FFI.djs_decode_obu(this.ref, obuRef, obu.byteLength, format);
     if (!frameRef) {
       this.FFI.djs_free_obu(obuRef);
