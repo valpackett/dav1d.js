@@ -40,6 +40,7 @@ djs *djs_init(void) {
     return NULL;
   Dav1dSettings s;
   dav1d_default_settings(&s);
+  s.n_threads = 1; // required for test-native to not EAGAIN
 #ifdef DJS_VALGRIND
   dav1d_set_cpu_flags_mask(0);
 #endif
