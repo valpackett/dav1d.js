@@ -1,36 +1,16 @@
-function abort(what) {
-  what = "Aborted(" + what + ")";
-  console.error(what);
-  throw new WebAssembly.RuntimeError(what);
-}
-
-let HEAPU8;
 function getRuntime(memory) {
-  const _abort = () => abort("");
-  const _emscripten_get_heap_max = () => HEAPU8.length;
-  const _emscripten_memcpy_js = (dest, src, num) =>
-    HEAPU8.copyWithin(dest, src, src + num);
-  const _emscripten_resize_heap = (requestedSize) => abort("OOM");
+  const abort = () => { throw new WebAssembly.RuntimeError("ABRT") };
   return {
     imports: {
-      // a: {
-      //   a: _abort,
-      //   d: _emscripten_get_heap_max,
-      //   b: _emscripten_memcpy_js,
-      //   c: _emscripten_resize_heap,
-      // }
       env: {
-        __assert_fail: () => abort("assert"),
-        abort: _abort,
-        emscripten_get_heap_max: _emscripten_get_heap_max,
-        emscripten_memcpy_js: _emscripten_memcpy_js,
-        emscripten_resize_heap: _emscripten_resize_heap,
+        abort,
+        emscripten_notify_memory_growth(_m) { /* We just don't hold references to memory */ },
       },
       wasi_snapshot_preview1: {
-        proc_exit: () => abort("exit"),
-        fd_close: () => abort("fd"),
-        fd_seek: () => abort("fd"),
-        fd_write: () => abort("fd")
+        proc_exit: abort,
+        fd_close: abort,
+        fd_seek: abort,
+        fd_write: abort,
       },
     },
   };
@@ -68,8 +48,6 @@ class Dav1d {
 
   constructor({wasm}) {
     this.FFI = wasm.instance.exports;
-    this.buffer = this.FFI.memory.buffer;
-    this.HEAPU8 = HEAPU8 = new Uint8Array(this.buffer);
     this.ref = 0;
     this.lastFrameRef = 0;
   }
@@ -87,17 +65,17 @@ class Dav1d {
     // const obuRef = this.FFI.j(obu.byteLength);
     const obuRef = this.FFI.djs_alloc_obu(obu.byteLength);
     if (!obuRef) throw new Error("error in djs_alloc_obu");
-    this.HEAPU8.set(obu, obuRef);
+    new Uint8Array(this.FFI.memory.buffer).set(obu, obuRef);
     // const frameRef = this.FFI.k(this.ref, obuRef, obu.byteLength, format);
     console.log('decoding', obu.byteLength, format)
     const frameRef = this.FFI.djs_decode_obu(this.ref, obuRef, obu.byteLength, format);
     if (!frameRef) throw new Error("error in djs_decode_obu");
-    const frameInfo = new Uint32Array(this.buffer, frameRef, 4);
+    const frameInfo = new Uint32Array(this.FFI.memory.buffer, frameRef, 4);
     const width = frameInfo[0];
     const height = frameInfo[1];
     const size = frameInfo[2];
     const dataRef = frameInfo[3];
-    const srcData = new Uint8Array(this.buffer, dataRef, size);
+    const srcData = new Uint8Array(this.FFI.memory.buffer, dataRef, size);
     if (unsafe) {
       this.lastFrameRef = frameRef;
       return srcData;

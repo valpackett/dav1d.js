@@ -7,9 +7,8 @@ build/dist/lib/libdav1d.a:
 	podman run --rm -it -v $(CURDIR):/src emscripten/emsdk sh -c "apt update && apt install -y meson && meson dav1d build --prefix=/src/build/dist --cross-file=dav1d/package/crossfiles/wasm32.meson --default-library=static --buildtype=debugoptimized -Dbitdepths=\"['8']\" -Denable_tools=false -Denable_tests=false -Dlogging=false && ninja -C build install"
 
 dav1d.wasm: build/dist/lib/libdav1d.a dav1d.c
-	podman run --rm -it -v $(CURDIR):/src emscripten/emsdk emcc $^ -DNDEBUG -O3 -g -flto --no-entry -Ibuild/dist/include -o $@ \
-		-s MALLOC=emmalloc -s INITIAL_MEMORY=2GB -s STACK_SIZE=11252192
-#ALLOW_MEMORY_GROWTH=1 -s 
+	podman run --rm -it -v $(CURDIR):/src emscripten/emsdk emcc $^ -DNDEBUG -O3 -flto --no-entry -Ibuild/dist/include -o $@ \
+		-s MALLOC=emmalloc -s INITIAL_MEMORY=8MB -s STACK_SIZE=4MB -s ALLOW_MEMORY_GROWTH=1
 
 .PHONY: test
 test: dav1d.c
