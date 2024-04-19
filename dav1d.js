@@ -69,7 +69,10 @@ class Dav1d {
     // const frameRef = this.FFI.k(this.ref, obuRef, obu.byteLength, format);
     console.log('decoding', obu.byteLength, format)
     const frameRef = this.FFI.djs_decode_obu(this.ref, obuRef, obu.byteLength, format);
-    if (!frameRef) throw new Error("error in djs_decode_obu");
+    if (!frameRef) {
+      this.FFI.djs_free_obu(obuRef);
+      throw new Error("error in djs_decode_obu");
+    }
     const frameInfo = new Uint32Array(this.FFI.memory.buffer, frameRef, 4);
     const width = frameInfo[0];
     const height = frameInfo[1];

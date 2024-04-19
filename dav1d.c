@@ -212,6 +212,11 @@ void *djs_alloc_obu(uint32_t obu_len) {
   return malloc(obu_len);
 }
 
+EMSCRIPTEN_KEEPALIVE
+void djs_free_obu(void *buf) {
+  free(buf);
+}
+
 static void free_callback(const uint8_t *buf, void *cookie) {
   free((void*)buf);
 }
