@@ -235,6 +235,9 @@ djs_frame *djs_decode_obu(djs *d, uint8_t *obu, uint32_t obu_len, djs_format fmt
   djs_frame *frame = malloc(sizeof(djs_frame));
   if (!frame)
     return NULL;
+  // Workaround for the FIXME's about odd dimensions
+  pic.p.w -= pic.p.w % 2;
+  pic.p.h -= pic.p.h % 2;
   frame->width = pic.p.w;
   frame->height = pic.p.h;
   int ret = fmt == DJS_FORMAT_BMP ? create_bmp(&pic, frame)
